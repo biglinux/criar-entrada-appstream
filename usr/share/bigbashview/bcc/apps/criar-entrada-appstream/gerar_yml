@@ -1,0 +1,94 @@
+#!/bin/bash
+##########################################
+#  Script produzido para facilitar a criação de arquivos yml  para a   #                       
+#  Big Store e demais lojas de aplicativos que utilizam appstream    #
+#  como base de dados.                                                                      #
+#  Feito com <3 e shell script por Elton F. Ferreira 10/04/2019          #
+##########################################
+#
+# Start
+kdialog --msgbox "Script produzido para facilitar a criação de arquivos yml para a Big Store e demais lojas de aplicativos que utilizam appstream como base de dados. Vamos começar!"
+#
+# ID do arquivo yml
+DESK=$(ls /usr/share/applications | grep "desktop")
+ID=$(kdialog --title "YML" --combobox "Selecione ID:" $DESK)
+#
+# Package do arquivo yml
+C=$(echo $ID | awk '{print substr($0, 1, 4)}')
+PKG=$(dpkg --get-selections "$C*" | sed -e 's|install||g')
+PKG1=$(kdialog --title "YML" --combobox "Selecione o pacote:" $PKG)
+#
+# Name do arquivo yml
+NAME1=$(kdialog --title "YML" --inputbox "Insira o nome do programa em inglês:")
+NAME2=$(kdialog --title "YML" --inputbox "Insira o nome do programa em português:")
+#
+# Summary do arquivo yml
+SUM1=$(kdialog --title "YML" --inputbox "Insira um sumário do programa em inglês:")
+SUM2=$(kdialog --title "YML" --inputbox "Insira um sumário do programa em português:")
+#
+# Description do arquivo yml
+DESC1=$(kdialog --title "YML" --inputbox "Insira uma descrição do programa em inglês:")
+DESC2=$(kdialog --title "YML" --inputbox "Insira uma descrição do programa em português:")
+#
+# Categories do arquivo yml
+MAIN=$(ls $HOME/.config/yml)
+MAINCAT=$(kdialog --title "YML" --combobox "Selecione a categoria principal:" $MAIN)
+SUB=$(cat $HOME/.config/yml/$MAINCAT)
+SUBCAT=$(kdialog --title "YML" --combobox "Selecione a subcategoria:" $SUB)
+#
+# ProjectLicense do arquivo yml
+LIC=$(kdialog --title "YML" --combobox "Selecione a Licença:" "Proprietary" "GPL2+" "GPL3+" "MIT" "LGPL" )
+#
+# Keywords do arquivo yml
+KEY=$(kdialog --title "YML" --inputbox "Insira palavras-chaves separando por vírgula sem espaço:")
+#
+# Icon do arquivo yml
+kdialog --msgbox "Vamos escolher a primeira imagem que será usada como ícone. Tamanho adequado é de 64x64 pixels (PNG)."
+PN=$(kdialog --getopenfilename $HOME  '*.png')
+PNG=$(echo $PN | awk -F '/' '{print $NF}')
+#
+# Screenshots do arquivo yml
+kdialog --msgbox "Vamos escolher a segunda imagem que será usada como screenshot. Tamanho adequado é de 1.000 pixels de largura (JPG/JPEG)."
+JP=$(kdialog --getopenfilename  $HOME '*.jpg *.jpeg')
+JPG=$(echo $JP | awk -F '/' '{print $NF}')
+#
+# pasta do arquivo yml
+mkdir -p ~/YML; cd ~/YML
+#
+# arquivo yml
+cat > "$PKG1"_dep11_Components-amd64.yml <<FOO
+---
+Type: desktop-application
+ID: $ID
+Package: $PKG1
+Name:
+  C: $NAME1
+  pt: $NAME2
+Summary:
+  C: $SUM1
+  pt: $SUM2
+Description:
+  C: >-
+    <p>$DESC1</p>
+  pt: >-
+    <p>$DESC2</p>
+Categories:
+- $MAINCAT
+- $SUBCAT
+ProjectLicense: $LIC
+Keywords:
+  C:
+  - $KEY
+Icon:
+  cached:
+  - name: /usr/share/pixmaps/$PNG
+Screenshots:
+- default: true
+  source-image:
+    url: file:///usr/share/biglinux/appstream/$JPG
+FOO
+DIR="$HOME/YML"
+kdialog --msgbox "O arquivo \"yml\" foi gerado na pasta $DIR com sucesso! Vou abrir o arquivo para possíveis correções. Thanks!"
+xdg-open $HOME/YML/"$PKG1"_dep11_Components-amd64.yml
+#
+#END

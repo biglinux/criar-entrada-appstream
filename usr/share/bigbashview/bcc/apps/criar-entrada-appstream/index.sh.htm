@@ -1,0 +1,273 @@
+#!/bin/mksh
+echo "$*"
+
+#Resolve conflito com acentos
+echo '<meta charset="UTF-8"><html><body>'
+
+#################
+#Tema
+cat << EOF
+<style>
+body {
+font-family: ubuntu;
+background: linear-gradient(to right, #4e4376, #2b5876); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+color: #E2F5FF;
+font-size: 18px;
+margin-left: 25px;
+margin-right: 25px;
+}
+
+input[type="text"], textarea {
+background-color : #d3dae3;
+color: #333333;
+}
+
+.titulo {
+font-size: 36px;
+color: #e0dfdc;
+letter-spacing: .1em;
+text-shadow: 0 -1px 0 #fff, 0 1px 0 #2e2e2e, 0 2px 0 #2c2c2c, 0 3px 0 #2a2a2a, 0 4px 0 #282828, 0 5px 0 #262626, 0 6px 0 #242424, 0 7px 0 #222, 0 8px 0 #202020, 0 9px 0 #1e1e1e, 0 10px 0 #1c1c1c, 0 11px 0 #1a1a1a, 0 12px 0 #181818, 0 13px 0 #161616, 0 14px 0 #141414, 0 15px 0 #121212, 0 22px 30px rgba(0,0,0,0.9);text-align: center;
+}
+</style>
+EOF
+#Tema concluído
+#################
+
+
+echo "<title>Cadastrador de aplicativos na Big Store</title>"
+
+#Título
+echo "<div class=titulo>"
+echo $"Cadastrador de aplicativos na Big Store"
+echo "</div>"
+
+#Quebra de linha dupla
+echo "<br><br>"
+
+echo $"Este painel foi feito para criar arquivos que sejam lidos pelo appstream, que são utilizados pelas centrais de instalação de programas Plasma Discover e Big Store. Os dados aqui exibidos são obtidos através do arquivo .desktop na pasta /usr/share/applications e também em resultados do apt e dpkg."
+
+#Quebra de linha dupla
+echo "<br><br>"
+
+echo $"Revise os textos e a acentuação, já que os dados importados automaticamente perdem a acentuação."
+
+#Quebra de linha dupla com separador
+echo "<br><hr><br>"
+
+
+#Início do formulário, informe o arquivo que irá receber os dados do formulário, no caso este mesmo arquivo
+echo "<form action=\"index.sh.htm\" method=\"get\">"
+
+#Informação
+echo $"Selecione o arquivo correspondente ao programa que está sendo cadastrado:"
+
+#Quebra de linha
+echo "<br>"
+
+#Inicia o menu Drop Down para o ID, a variavel onchange informa para ao selecionar um ítem, que o formulário seja enviado e a página então é recarregada e com a informação recebida pode preencher a próxima etapa
+echo "<select name=\"identifier\" onchange=\"this.form.submit()\">"
+
+#Verifica arquivos desktop na /usr/share/applications e insere linhas no dropdown
+for ID in $(ls /usr/share/applications/ | grep ".desktop$"); do
+    #Verifica se o ID não possui a informação NoDisplay=true
+    if [ "$(grep -i "NoDisplay=true" "/usr/share/applications/$ID")" = "" ]; then
+        #Verifica se o ID selecionado consta na lista atual de aplicativos e o mantêm marcado ao atualizar a página
+        if [ "$p_identifier" = "$ID" ]; then
+            echo "<option value=\"$ID\" selected>" $"$ID" "</option>"
+        else
+            echo "<option value=\"$ID\">" $"$ID" "</option>"
+        fi
+    fi
+done
+
+#Fecha o dropdown
+echo "</select>"
+
+#Quebra de linha tripla
+echo "<br><br><br>"
+
+#Confere se já foi selecionado o arquivo desktop para prosseguir com as proximas etapas
+if [ "$p_identifier" != "" ]; then
+
+    #Verifica o nome do pacote no dpkg que representa esse programa
+    pacote="$(dpkg -S "/usr/share/applications/$p_identifier" | cut -f1 -d:)"
+    
+    #Pega informações do arquivo .desktop e utiliza nas variaveis, foi necessário usar o iconv para converter para ASCII removendo os acentos, pois estava dando erro de codificação
+    desktopName="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep -m1 "^Name=" | cut -f2 -d=)"
+
+    desktopComment="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep "^Comment=" | cut -f2 -d=)"
+    desktopCommentPT="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep "^Comment\[pt\]=" | cut -f2 -d=)"
+    desktopCommentPTBR="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep "^Comment\[pt_BR\]=" | cut -f2 -d=)"
+
+    desktopGeneric="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep "GenericName=" | cut -f2 -d=)"
+    desktopGenericPT="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep "GenericName\[pt\]=" | cut -f2 -d=)"
+    desktopGenericPTBR="$(iconv -t ASCII//TRANSLIT "/usr/share/applications/$p_identifier" | grep "GenericName\[pt_BR\]=" | cut -f2 -d=)"
+
+    
+    #Na descrição do programa em geral o Comment é melhor que o Generic e o PTBR melhor que o PT, então se mais de um está preenchido, da prioridade ao que geralmente é melhor
+    if [ "$desktopCommentPTBR" != "" ]; then
+        desktopCommentPTBRok="$desktopCommentPTBR"
+    elif [ "$desktopCommentPT" != "" ]; then
+        desktopCommentPTBRok="$desktopCommentPT"
+    elif [ "$desktopGenericPTBR" != "" ]; then
+        desktopCommentPTBRok="$desktopGenericPTBR"
+    elif [ "$desktopGenericPT" != "" ]; then
+        desktopCommentPTBRok="$desktopGenericPT"
+    elif [ "$desktopComment" != "" ]; then
+        desktopCommentPTBRok="$desktopComment"
+    elif [ "$desktopGeneric" != "" ]; then
+        desktopCommentPTBRok="$desktopGeneric"
+    fi
+    
+    #Escolhe o descrição em inglês
+    if [ "$desktopGeneric" != "" ]; then
+        desktopCommentok="$desktopGeneric"
+    fi
+    if [ "$desktopComment" != "" ]; then
+        desktopCommentok="$desktopComment"
+    fi
+
+    #Informação
+    echo "Nome do pacote no apt/dpkg:"
+    #Quebra de linha
+    echo "<br>"
+    #Nome do pacote
+    echo "<b>$pacote</b>"
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+    #Verifica se o nome em ingles ja havia sido preenchido, se não foi preenchido, automaticamente usa o nome descrito no .desktop
+    if [ "$p_nomeIngles" != "" ] && [ "$p_identifier" = "$ID" ]; then
+        echo $"Nome do pacote em inglês:" "<br><input type=\"text\" name=\"nomeIngles\" size=\"35\" value=\"$p_nomeIngles\">"
+    else
+        echo $"Nome do pacote em inglês:" "<br><input type=\"text\" name=\"nomeIngles\" size=\"35\" value=\"$desktopName\">"
+    fi
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+    
+    #Verifica se o nome em portugues ja havia sido preenchido, se não foi preenchido, automaticamente usa o nome descrito no .desktop
+    if [ "$p_nomePortugues" != "" ] && [ "$p_identifier" = "$ID" ]; then
+        echo $"Nome do pacote em português, geralmente não é preciso traduzir:" "<br><input type=\"text\" name=\"nomePortugues\" size=\"35\" value=\"$p_nomePortugues\">"
+    else
+        echo $"Nome do pacote em português, geralmente não é preciso traduzir:" "<br><input type=\"text\" name=\"nomePortugues\" size=\"35\" value=\"$desktopName\">"
+    fi
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+    #Verifica se o sumário em ingles ja havia sido preenchido, se não foi preenchido, automaticamente tenta utilizar informações do .desktop
+    if [ "$p_summaryIngles" != "" ] && [ "$p_identifier" = "$ID" ]; then
+        echo $"Nome da descrição curta em inglês:" "<br><input type=\"text\" name=\"summaryIngles\" size=\"70\" value=\"$p_summaryIngles\">"
+    else
+        echo $"Nome da descrição curta em inglês:" "<br><input type=\"text\" name=\"summaryIngles\" size=\"70\" value=\"$desktopCommentok\">"
+    fi
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+    #Verifica se o sumário em portugues ja havia sido preenchido, se não foi preenchido, automaticamente tenta utilizar informações do .desktop
+    if [ "$p_summaryPortugues" != "" ] && [ "$p_identifier" = "$ID" ]; then
+        echo $"Descrição curta em português:" "<br><input type=\"text\" name=\"summaryPortugues\" size=\"70\" value=\"$p_summaryPortugues\">"
+    else
+        echo $"Descrição curta em português:" "<br><input type=\"text\" name=\"summaryPortugues\" size=\"70\" value=\"$desktopCommentPTBRok\">"
+    fi
+    
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+    
+    #Verifica se a descrição em ingles ja havia sido preenchida, se não foi preenchida, automaticamente tenta utilizar informações do apt
+    if [ "$p_descIngles" != "" ] && [ "$p_identifier" = "$ID" ]; then
+        echo $"Descrição completa em inglês:" "<br><textarea name=\"descIngles\" rows=\"8\" cols=\"90\">$p_descIngles</textarea>"
+    else
+        echo $"Descrição completa em inglês:" "<br><textarea name=\"descIngles\" rows=\"8\" cols=\"90\">$(apt-cache -o Acquire::Languages=en show $pacote | grep -A 100 "Description-en:" | sed 's|Description-en:| |g' | grep -m1 -B 100 "^[A-Z]" | grep -v "^[A-Z]")</textarea>"
+    fi
+    
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+    
+    #Verifica se a descrição em portugues ja havia sido preenchida, se não foi preenchida, automaticamente tenta utilizar informações do apt
+    if [ "$p_descPortugues" != "" ] && [ "$p_identifier" = "$ID" ]; then
+        echo $"Descrição completa em português:" "<br><textarea name=\"descPortugues\" rows=\"8\" cols=\"90\">$p_descPortugues</textarea>"
+    else
+        echo $"Descrição completa em português:" "<br><textarea name=\"descPortugues\" rows=\"8\" cols=\"90\">$(apt-cache -o Acquire::Languages=pt_BR show $pacote | iconv -t ASCII//TRANSLIT | grep -A 100 "Description-pt_BR:" | sed 's|Description-pt_BR:| |g' | grep -m1 -B 100 "^[A-Z]" | grep -v "^[A-Z]")</textarea>"
+    fi
+
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+    
+
+    echo '<a href=categoria.run><font color=#ffffff>' $"Clique aqui para selecionar categoria e subcategoria." '</font></a>'
+
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+
+    echo $"Selecione a licença do pacote:"
+    echo "<select name=\"licenca\">
+<option value=\"\">" $"Selecione a licença:" "</option>
+<option value=\"Proprietary\">" $"Proprietary" "</option>
+<option value=\"GPL2+\">" $"GPL2+" "</option>
+<option value=\"GPL3+\">" $"GPL3+" "</option>
+<option value=\"LGPL\">" $"LGPL" "</option>
+<option value=\"BSD\">" $"BSD" "</option>
+<option value=\"Apache\">" $"Apache" "</option>
+<option value=\"Mozilla\">" $"Mozilla" "</option>
+<option value=\"MIT\">" $"MIT" "</option>
+<option value=\"X11\">" $"X11" "</option>
+<option value=\"CC BY\">" $"CC BY" "</option>
+<option value=\"CC BY-SA\">" $"CC BY-SA" "</option>
+<option value=\"CC BY-NC-ND\">" $"CC BY-NC-ND" "</option>
+<option value=\"CC BY-NC-SA\">" $"CC BY-NC-SA" "</option>
+</select>"
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+    
+
+echo $"Insira palavras chave que facilitem a busca pelo pacote, separando por vírgula e sem espaço:"
+echo "<br>"
+echo "<input title=\"$inputtext_title\" type=\"text\" name=\"keywords\" size=\"50\" value=\"\" placeholder=\"" $"Escreva aqui" "\">"
+
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+    
+
+    echo '<a href=icone.run><font color=#ffffff>' $"Clique aqui para selecionar o ícone deste pacote." '</font></a>'
+
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+
+    echo '<a href=imagem.run><font color=#ffffff>' $"Clique aqui para selecionar uma imagem do programa." '</font></a>'
+
+
+    #Quebra de linha tripla
+    echo "<br><br><br>"
+
+
+    echo "<center><input type=\"button\" value=\"Criar Arquivo .yml\" onclick=\"this.form.submit()\"></center>"
+    echo "</form>"
+
+
+
+# Pasta para salvar ícones
+# /var/lib/app-info/icons/biglinux
+
+# Pasta para salvar papel de parede
+# /usr/share/biglinux/appstream/
+
+
+
+
+
+fi
+
+

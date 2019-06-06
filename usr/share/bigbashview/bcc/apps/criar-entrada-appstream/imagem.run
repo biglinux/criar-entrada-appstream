@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+kdialog --getopenfilename /home 'image/jpeg' > /tmp/bigstore-imagem.txt
+
+kdialog --title "Imagem" --msgbox "A imagem selecionada foi:
+
+$(cat /tmp/bigstore-imagem.txt)"

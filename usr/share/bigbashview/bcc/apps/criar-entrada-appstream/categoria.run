@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Categoria do arquivo yml
+MAIN=$(ls /usr/share/bigbashview/bcc/apps/criar-entrada-appstream/categories/)
+MAINCAT=$(kdialog --title "YML" --combobox "Selecione a categoria principal:" $MAIN) 
+SUB=$(cat /usr/share/bigbashview/bcc/apps/criar-entrada-appstream/categories/$MAINCAT)
+SUBCAT=$(kdialog --title "YML" --combobox "Selecione a subcategoria:" $SUB)
+
+
+echo "$MAINCAT" > /tmp/bigstore_maincat.txt
+echo "$SUBCAT" > /tmp/bigstore_subcat.txt
+
+kdialog --title "Categoria" --msgbox "Foi selecionado:
+
+Categoria: $MAINCAT
+
+Subcategoria: $SUBCAT"

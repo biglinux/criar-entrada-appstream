@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+kdialog --getopenfilename /home 'image/png' > /tmp/bigstore-icone.txt
+
+kdialog --title "Ícone" --msgbox "Foi selecionado o ícone:
+
+$(cat /tmp/bigstore-icone.txt)"
